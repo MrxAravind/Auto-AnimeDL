@@ -1,5 +1,20 @@
 import aria2p
 
+
+
+
+
+def print_progress_bar(name, downloaded, total_size, length=20):
+    if total_size <= 0:
+        total_size = downloaded
+    percent = ("{0:.1f}").format(100 * (downloaded / float(total_size)))
+    filled_length = int(length * downloaded // total_size)
+    bar = '#' * filled_length + '-' * (length - filled_length)
+    sys.stdout.write(f'\r{name} - [{bar}] {percent}%')
+    sys.stdout.flush()
+
+
+
 # Connect to aria2c daemon
 def connect_aria2():
     return aria2p.API(
