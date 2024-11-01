@@ -35,12 +35,12 @@ def download_with_aria2(link, path):
     try:
         # Prepare the command
         command = ['aria2c', link, '-x', '10', '-j', '10', '--seed-time=0', '-d', path]
-        
-        # Execute the command
-        subprocess.run(command, check=True)
+        # Execute the command with output redirected to DEVNULL
+        subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("Download completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
+
 
 def generate_random_string(length):
     characters = string.ascii_letters + string.digits + string.punctuation
