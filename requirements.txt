@@ -9,5 +9,4 @@ vcsi
 telegraph
 aria2p
 tabulate
-aria2
 bencodepy
