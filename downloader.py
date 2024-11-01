@@ -11,7 +11,7 @@ def connect_aria2():
     )
 
 # Add a download with a specified filename
-def add_download(api, url):
+def add_download(api, url,title):
     try:
         download_list = api.add(url)
 
@@ -20,11 +20,11 @@ def add_download(api, url):
 
         if isinstance(download_list, list):
             for download in download_list:
-                print(f"Download added: {download.gid} with filename: {filename}")
+                print(f"Download added: {download.gid} with filename: {title}")
                 gids.append(download)
         else:
             download = download_list
-            print(f"Download added: {download.gid} with filename: {filename}")
+            print(f"Download added: {download.gid} with filename: {title}")
             gids.append(download)
 
         return gids[0]
