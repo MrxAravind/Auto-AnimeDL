@@ -18,7 +18,7 @@ def add_download(api, url, filename):
     try:
         # Set the options for the download
         options = {"out": filename}  # Specify the desired filename
-        download_list = api.add(url, options=options)
+        download_list = api.add_magnet(url, options=options)
 
         # Collect the gids
         gids = []
