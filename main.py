@@ -71,7 +71,7 @@ async def start_download():
         for title, file_size, duration, torrent_link, pixhost_link in results:
             print(f"Starting download: {title} from {torrent_link}")
             try:
-                download = add_download(api, torrent_link)
+                download = add_download(api, torrent_link,title)
                 gid = download.gid  # Get the download ID
 
                 # Wait for the download to complete
