@@ -63,7 +63,7 @@ def generate_thumbnail(file_name, output_filename):
     except subprocess.CalledProcessError as e:
         print(f"Error generating thumbnail for {file_name}: {e}")
 
-async def monitor_download(api, download, title):
+async def monitor_download(api, download,start_time, title):
     while True:
         try:
             while not download.is_complete:
@@ -94,11 +94,12 @@ async def start_download():
             print(f"Starting download: {title} from {torrent_link}")
             try:
                 download = add_download(api, torrent_link, title)
+                start_time = datetime.now()
                 if not download:
                     print(f"Failed to add download for {title}")
                     continue
                 
-                status = await monitor_download(api, download, title)
+                status = await monitor_download(api, download,start_time, title)
                 
                 # Get the file path from the completed download
                 file_path = download.files[0].path
