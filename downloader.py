@@ -78,7 +78,7 @@ def purge_downloads(api):
         print(f"Failed to purge downloads: {e}")
 
 # List all downloads with detailed information
-def list_downloads(api):
+def list_downloads(api,start_time):
     try:
         downloads = api.get_downloads()
         if not downloads:
@@ -95,7 +95,7 @@ def list_downloads(api):
             completed_mb = download.completed_length / 1024 / 1024
 
             # Format timestamp
-            timestamp = datetime.fromtimestamp(download.start_time).strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S')
 
             # Prepare row data
             row = [
