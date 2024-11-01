@@ -101,17 +101,16 @@ async def start_download():
                 if not download:
                     print(f"Failed to add download for {title}")
                     continue
-                
-                status = await monitor_download(api, download,start_time, title)
-                
+                while not download.is_complete:
+                    download.update()
+                    await asyncio.sleep(5)
+                    
                 # Get the file path from the completed download
                 file_path = download.files[0].path
-                thumb_path = f"Downloads/{title}.png"
-                
-                # Generate thumbnail
-                generate_thumbnail(file_path, thumb_path)
+                if file_path:
+                    thumb_path = f"Downloads/{title}.png"
+                    generate_thumbnail(file_path, thumb_path)
 
-                # Send video and insert document into MongoDB
                 video_message = await app.send_video(
                     DUMP_ID, video=file_path, thumb=thumb_path, caption=title
                 )
