@@ -108,7 +108,8 @@ def list_downloads(api,start_time):
                 timestamp,
                 download.error_message[:30] if download.error_message else ''
             ]
-            download_info.append(row)
+            if download.status == "active" and total_mb !=0 :
+                 download_info.append(row)
 
         # Print table using tabulate
         headers = ["GID", "Name", "Status", "Progress", "Size", "Speed", "Start Time", "Error"]
