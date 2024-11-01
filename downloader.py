@@ -1,6 +1,7 @@
 import aria2p
 from datetime import datetime
 from tabulate import tabulate
+import os
 
 # Connect to aria2c daemon
 def connect_aria2():
@@ -77,9 +78,11 @@ def purge_downloads(api):
     except Exception as e:
         print(f"Failed to purge downloads: {e}")
 
-# List all downloads with detailed information
-def list_downloads(api,start_time):
+def list_downloads(api, start_time):
     try:
+        # Clear the screen
+        os.system('cls' if os.name == 'nt' else 'clear')
+
         downloads = api.get_downloads()
         if not downloads:
             print("No downloads found")
@@ -108,8 +111,8 @@ def list_downloads(api,start_time):
                 timestamp,
                 download.error_message[:30] if download.error_message else ''
             ]
-            if download.status == "active" and total_mb !=0 :
-                 download_info.append(row)
+            if download.status == "active" and total_mb != 0:
+                download_info.append(row)
 
         # Print table using tabulate
         headers = ["GID", "Name", "Status", "Progress", "Size", "Speed", "Start Time", "Error"]
