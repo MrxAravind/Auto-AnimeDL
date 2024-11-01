@@ -13,7 +13,7 @@ def connect_aria2():
 # Add a download with a specified filename
 def add_download(api, url):
     try:
-        download_list = api.add(url, options=options)
+        download_list = api.add(url)
 
         # Collect the gids
         gids = []
