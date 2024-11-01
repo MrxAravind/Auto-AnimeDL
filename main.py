@@ -101,12 +101,7 @@ async def start_download():
                 status = await monitor_download(api, download, title)
                 
                 # Get the file path from the completed download
-                files = api.getFiles(download.gid)  # Correct method name is getFiles
-                if not files or not files[0]['path']:
-                    print(f"No file path found for {title}")
-                    continue
-                
-                file_path = files[0]['path']
+                file_path = download.files[0].path
                 thumb_path = f"Downloads/{title}.png"
                 
                 # Generate thumbnail
