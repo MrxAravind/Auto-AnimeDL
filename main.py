@@ -63,25 +63,21 @@ def generate_thumbnail(file_name, output_filename):
     except subprocess.CalledProcessError as e:
         print(f"Error generating thumbnail for {file_name}: {e}")
 
-async def monitor_download(api, gid, title):
+async def monitor_download(api, download, title):
     while True:
         try:
-            status = api.tellStatus(gid)  # Correct method name is tellStatus
-            if status['status'] == 'complete':
+            while not download.is_complete:
+                download.update()
+                progress = download.progress
+                done = download.completed_length
+                total_size = download.total_length
+                speed = download.download_speed
+                eta = download.eta
+                elapsed_time_seconds = (datetime.now() - start_time).total_seconds()
+                print(f"{title}: Progress: {progress:.2f}% - Speed: {speed/1024/1024:.2f} MB/s : [{eta}]")
+            if download.is_complete:
                 print(f"{title}: Download Completed")
-                return status
-            elif status['status'] == 'error':
-                print(f"{title}: Download Error - {status.get('errorMessage', 'Unknown error')}")
-                return None
-            
-            # Calculate progress
-            if 'totalLength' in status and int(status['totalLength']) > 0:
-                downloaded = int(status['completedLength'])
-                total = int(status['totalLength'])
-                progress = (downloaded / total) * 100
-                speed = int(status.get('downloadSpeed', 0))
-                print(f"{title}: Progress: {progress:.2f}% - Speed: {speed/1024/1024:.2f} MB/s")
-            
+                return
             await asyncio.sleep(5)  # Check every 5 seconds
             
         except Exception as e:
@@ -102,10 +98,7 @@ async def start_download():
                     print(f"Failed to add download for {title}")
                     continue
                 
-                # Monitor download progress
-                status = await monitor_download(api, download.gid, title)
-                if not status:
-                    continue
+                status = await monitor_download(api, download, title)
                 
                 # Get the file path from the completed download
                 files = api.getFiles(download.gid)  # Correct method name is getFiles
