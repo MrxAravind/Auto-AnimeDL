@@ -1,103 +1,55 @@
-import asyncio
 import os
 import subprocess
-import random
-from datetime import datetime
-import requests
-from bs4 import BeautifulSoup
+import re
+import feedparser
 from pyrogram import Client
 from config import *
-from downloader import *
-from database import connect_to_mongodb, find_documents, insert_document
-import static_ffmpeg
-import time
+from database import connect_to_mongodb, insert_document
+from downloader import connect_aria2, add_download
 
-
-
-static_ffmpeg.add_paths()
-# Connect to aria2
+# Initialize connections
 api = connect_aria2()
-
-# Database connection
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
-collection_name = "Hanime"
+collection_name = "Prips"
 
 # Pyrogram client initialization
 app = Client(
-    name="HanimeDLX-bot",
+    name="PRips-bot",
     api_hash=API_HASH,
     api_id=int(API_ID),
     bot_token=BOT_TOKEN,
     workers=300
 )
 
-def format_bytes(byte_count):
-    suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-    index = 0
-    while byte_count >= 1024 and index < len(suffixes) - 1:
-        byte_count /= 1024
-        index += 1
-    return f"{byte_count:.2f} {suffixes[index]}"
+def convert_pixhost_link(original_url):
+    parts = original_url.split('/')
+    number = parts[4]
+    image_id = parts[5].split('_')[0]
+    return f"https://t0.pixhost.to/thumbs/{number}/{image_id}_cover.jpg"
 
-
-def fetch_hanime_data():
-    documents = find_documents(db, collection_name)
-    downloaded_files = {doc["File_Name"] for doc in documents}
-    links = []
-    page = 1
-    error = 0
-    base_url = 'https://hanimes.org/'
-    categories = [
-        "tag/hanime", "category/new-hanime", "category/tsundere", "category/harem", "category/reverse", "category/milf", "category/romance", 
-        "category/school", "category/fantasy", "category/ahegao", "category/public", "category/ntr", "category/gb", "category/incest", 
-        "tag/uncensored", "category/ugly-bastard"
-    ]
-
-    with requests.Session() as session:
-        while len(links) < 50 and error <= 20:
-            pagel = f"/page/{page}/"
-            for category in categories:
-                print(f"{category} | Page:{page}")
-                try:
-                    response = session.get(f"{base_url}{category}{pagel}")
-                    response.raise_for_status()
-                    soup = BeautifulSoup(response.text, 'html.parser')
-                    articles = soup.find_all('article', class_='TPost B')
-
-                    for article in articles:
-                        title = article.find('h2', class_='Title').get_text(strip=True)
-                        link = article.find('div', class_='TPMvCn').find('a', href=True)['href']
-                        img = article.find('img', src=True)['src']
-                        file_name = f"{title}.mp4"
-                        if file_name not in downloaded_files:
-                            video_links = fetch_video_links(session, link)
-                            if video_links and video_links[0].startswith("https://") and [title, img, video_links[0]] not in links:
-                                links.append([title, img, video_links[0]])
-                                if len(links) >= 50:
-                                    break  # Exit if we have enough links
-                except requests.exceptions.RequestException as e:
-                    print(f"Error fetching category {category} on page {page}: {e}")
-                    error += 1
-                    time.sleep(2)  # Wait before retrying
-            page += 1
-
-    return links
-
-def fetch_video_links(session, link):
-    """Fetch video links from the provided link."""
-    try:
-        video_response = session.get(link)
-        video_response.raise_for_status()
-        return [source['src'] for source in BeautifulSoup(video_response.text, 'html.parser').find_all('source', src=True)]
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching video content from {link}: {e}")
+def fetch_rss_links(rss_url):
+    feed = feedparser.parse(rss_url)
+    if feed.bozo:
+        print("Error fetching the RSS feed.")
         return []
 
+    entries_info = []
+    for entry in feed.entries:
+        title = entry.title
+        content = entry.content[0].value
 
+        release = re.search(r'<strong>Release:</strong>\s*(.*?)<br', content).group(1).strip()
+        file_size = re.search(r'<strong>File Size:</strong>\s*(.*?)<br', content).group(1).strip()
+        duration = re.search(r'<strong>Duration:</strong>\s*(.*?)</p>', content).group(1).strip()
+        torrent_link = re.search(r'href="(https://[^"]*\.torrent)"', content).group(1)
 
-async def progress(current, total):
-    print(f"Download Progress: {current * 100 / total:.1f}%")
-         
+        pixhost_link_match = re.search(r'(https://pixhost\.to/show/\d+/\d+_cover\.jpg)', content)
+        pixhost_link = convert_pixhost_link(pixhost_link_match.group(1)) if pixhost_link_match else "No Pixhost link found"
+
+        entries_info.append((title, file_size, duration, torrent_link, pixhost_link))
+
+    return entries_info
+
 def generate_thumbnail(file_name, output_filename):
     command = [
         'vcsi', file_name, '-t', '-g', '2x2',
@@ -112,37 +64,47 @@ def generate_thumbnail(file_name, output_filename):
 
 async def start_download():
     async with app:
-        if True:
+        rss_url = "https://pornrips.to/feed/"
+        results = fetch_rss_links(rss_url)
+        print(f"Total links found: {len(results)}")
+
+        for title, file_size, duration, torrent_link, pixhost_link in results:
+            print(f"Starting download: {title} from {torrent_link}")
             try:
-                up = 0
-                hanime_links = fetch_hanime_data()
-                print(f"Total links found: {len(hanime_links)}")
-                for title, thumb, url in hanime_links:
-                    file_path = f"Downloads/{title}.mp4"
-                    file_name = f"{title}.mp4"
-                    thumb_path = f"Downloads/{title}.png"
-                    print(f"Starting download: {title} from {url}")
-                    download = add_download(api, url, file_path)
-                    while not download.is_complete:
-                            download.update()
-                    print(f"{file_path} Download Completed")
-                    generate_thumbnail(file_path, thumb_path)    
-                    if download.is_complete:
-                            video_message = await app.send_video(
-                                DUMP_ID, video=file_path, thumb=thumb_path, caption=title
-                            )
-                            result = {
-                                "ID": video_message.id,
-                                "File_Name": file_name,
-                                "Video_Link": url,
-                            }
-                            insert_document(db, collection_name, result)
-                            up+=1
-                            print(up)
-                            os.remove(file_path)
-                            os.remove(thumb_path)
+                download = add_download(api, torrent_link)
+                gid = download.gid  # Get the download ID
+
+                # Wait for the download to complete
+                while not download.is_complete:
+                    download.update()
+
+                print(f"{title}: Download Completed")
+
+                # Fetch details about the completed download
+                download_info = api.tell_status(gid)
+                file_path = download_info['files'][0]['path']  # Get the file path
+                thumb_path = f"Downloads/{title}.png"
+                
+                # Generate thumbnail
+                generate_thumbnail(file_path, thumb_path)
+
+                # Send video and insert document into MongoDB
+                video_message = await app.send_video(
+                    DUMP_ID, video=file_path, thumb=thumb_path, caption=title
+                )
+                result = {
+                    "ID": video_message.id,
+                    "File_Name": title,
+                    "Video_Link": torrent_link,
+                }
+                insert_document(db, collection_name, result)
+
+                # Cleanup
+                os.remove(file_path)
+                os.remove(thumb_path)
+
             except Exception as e:
-                print(f"Error during download process: {e}")
+                print(f"Error during download process for {title}: {e}")
 
 if __name__ == "__main__":
     app.run(start_download())
