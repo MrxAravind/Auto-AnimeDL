@@ -6,13 +6,13 @@ import asyncio
 from pyrogram import Client
 from config import *
 from database import connect_to_mongodb, insert_document
-from downloader import connect_aria2, add_download,list_downloads
+from downloader import connect_qbittorrent, add_download, list_downloads
 from datetime import datetime
 import time
 from tor2mag import *
 
 # Initialize connections
-api = connect_aria2()
+qb = connect_qbittorrent()  # Connect to qBittorrent
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
 collection_name = "Prips"
 
@@ -77,21 +77,26 @@ async def start_download():
             print(f"Starting download: {title} from {magnet_link}") 
             try:
                 file_path = f"{title}.mp4"
-                download = add_download(api, magnet_link, file_path)
+                add_download(qb, magnet_link, file_path)  # Using qBittorrent to add the download
                 start_time = datetime.now()
-                if not download:
-                    print(f"Failed to add download for {title}")
-                    continue
-                while not download.is_complete:
-                    download.update()
-                    list_downloads(api,start_time)
+
+                # Wait for the download to complete
+                while True:
+                    torrents = qb.torrents()
+                    torrent_hash = [t['hash'] for t in torrents if t['name'] == title][0]
+                    torrent_status = qb.torrents_info(torrent_hash)
+
+                    if torrent_status and torrent_status['progress'] == 1.0:
+                        break  # Download is complete
+
+                    list_downloads(qb)  # List current downloads
                     time.sleep(4)
-                    
-                    
-                # Get the file path from the completed download
+
+                # Generate thumbnail
                 thumb_path = f"Downloads/{title}.png"
                 generate_thumbnail(file_path, thumb_path)
 
+                # Send video with Pyrogram
                 video_message = await app.send_video(
                     DUMP_ID, video=file_path, thumb=thumb_path, caption=title
                 )
