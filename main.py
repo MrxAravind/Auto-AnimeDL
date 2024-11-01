@@ -8,6 +8,7 @@ from config import *
 from database import connect_to_mongodb, insert_document
 from downloader import connect_aria2, add_download,list_downloads
 from datetime import datetime
+import time
 
 
 
@@ -84,6 +85,7 @@ async def start_download():
                 while not download.is_complete:
                     download.update()
                     list_downloads(api,start_time)
+                    time.sleep(4)
                     
                     
                 # Get the file path from the completed download
