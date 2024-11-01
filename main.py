@@ -6,8 +6,11 @@ import asyncio
 from pyrogram import Client
 from config import *
 from database import connect_to_mongodb, insert_document
-from downloader import connect_aria2, add_download
+from downloader import connect_aria2, add_download,print_progress_bar
 from datetime import datetime
+
+
+
 # Initialize connections
 api = connect_aria2()
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
@@ -74,7 +77,7 @@ async def monitor_download(api, download,start_time, title):
                 speed = download.download_speed
                 eta = download.eta
                 elapsed_time_seconds = (datetime.now() - start_time).total_seconds()
-                print(f"{title}: Progress: {progress:.2f}% - Speed: {speed/1024/1024:.2f} MB/s : [{eta}]")
+                print_progress_bar(title,done,total_size)
             if download.is_complete:
                 print(f"{title}: Download Completed")
                 return
