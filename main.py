@@ -6,13 +6,16 @@ import asyncio
 from pyrogram import Client
 from config import *
 from database import connect_to_mongodb, insert_document
-from downloader import connect_qbittorrent, add_download, list_downloads
 from datetime import datetime
 import time
 from tor2mag import *
+import subprocess
+import random
+import string
+
+
 
 # Initialize connections
-qb = connect_qbittorrent()  # Connect to qBittorrent
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
 collection_name = "Prips"
 
@@ -24,6 +27,27 @@ app = Client(
     bot_token=BOT_TOKEN,
     workers=300
 )
+
+
+
+
+def download_with_aria2(link, path):
+    try:
+        # Prepare the command
+        command = ['aria2c', link, '-x', '10', '-j', '10', '--seed-time=0', '-d', path]
+        
+        # Execute the command
+        subprocess.run(command, check=True)
+        print("Download completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+
+def generate_random_string(length):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    random_string = ''.join(random.choice(characters) for _ in range(length))
+    return random_string
+
+
 
 def convert_pixhost_link(original_url):
     parts = original_url.split('/')
@@ -74,26 +98,22 @@ async def start_download():
 
         for title, file_size, duration, torrent_link, pixhost_link in results:
             magnet_link = convert_torrent_url_to_magnet(torrent_link)
-            print(f"Starting download: {title} from {magnet_link}") 
+            print(f"Starting download: {title} from {magnet_link}")
             try:
-                file_path = f"{title}.mp4"
-                add_download(qb, magnet_link, file_path)  # Using qBittorrent to add the download
-                start_time = datetime.now()
+                gid = generate_random_string(10)
+                download_path = f"Downloads/{gid}"
+                os.makedirs(download_path, exist_ok=True)  # Create the directory if it doesn't exist
+                
+                download_with_aria2(magnet_link, download_path)
 
-                # Wait for the download to complete
-                while True:
-                    torrents = qb.torrents()
-                    torrent_hash = [t['hash'] for t in torrents if t['name'] == title][0]
-                    torrent_status = qb.torrents_info(torrent_hash)
+                video_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.mkv'))]
+                if not video_files:
+                    print(f"No video files found in {download_path}.")
+                    continue
 
-                    if torrent_status and torrent_status['progress'] == 1.0:
-                        break  # Download is complete
-
-                    list_downloads(qb)  # List current downloads
-                    time.sleep(4)
-
-                # Generate thumbnail
-                thumb_path = f"Downloads/{title}.png"
+                # Assuming you want to process the first video file found
+                file_path = os.path.join(download_path, video_files[0])
+                thumb_path = f"{download_path}/{title}.png"
                 generate_thumbnail(file_path, thumb_path)
 
                 # Send video with Pyrogram
@@ -110,9 +130,11 @@ async def start_download():
                 # Cleanup
                 os.remove(file_path)
                 os.remove(thumb_path)
+                os.rmdir(download_path)  # Remove the download folder if empty
 
             except Exception as e:
                 print(f"Error during download process for {title}: {e}")
+
 
 if __name__ == "__main__":
     app.run(start_download())
