@@ -71,17 +71,26 @@ async def start_download():
         for title, file_size, duration, torrent_link, pixhost_link in results:
             print(f"Starting download: {title} from {torrent_link}")
             try:
-                download = add_download(api, torrent_link,title)
+                download = add_download(api, torrent_link, title)
                 gid = download.gid  # Get the download ID
 
                 # Wait for the download to complete
-                while not download.is_complete:
-                    download.update()
+                while True:
+                    download_info = api.tell_status(gid)
+                    if download_info['status'] == 'completed':
+                        print(f"{title}: Download Completed")
+                        break
 
-                print(f"{title}: Download Completed")
+                    # Display progress
+                    if 'totalLength' in download_info and download_info['totalLength'] > 0:
+                        downloaded = download_info['completedLength']
+                        total = download_info['totalLength']
+                        progress = (downloaded / total) * 100
+                        print(f"{title}: Download Progress: {progress:.2f}%")
+
+                    await asyncio.sleep(1)  # Wait for a second before checking again
 
                 # Fetch details about the completed download
-                download_info = api.tell_status(gid)
                 file_path = download_info['files'][0]['path']  # Get the file path
                 thumb_path = f"Downloads/{title}.png"
                 
@@ -105,6 +114,7 @@ async def start_download():
 
             except Exception as e:
                 print(f"Error during download process for {title}: {e}")
+
 
 if __name__ == "__main__":
     app.run(start_download())
