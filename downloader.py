@@ -95,7 +95,7 @@ def list_downloads(api,start_time):
             completed_mb = download.completed_length / 1024 / 1024
 
             # Format timestamp
-            timestamp = datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = start_time
 
             # Prepare row data
             row = [
