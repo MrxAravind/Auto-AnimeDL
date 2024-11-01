@@ -1,18 +1,4 @@
 import aria2p
-import sys
-
-
-
-
-def print_progress_bar(name, downloaded, total_size, length=20):
-    if total_size <= 0:
-        total_size = downloaded
-    percent = ("{0:.1f}").format(100 * (downloaded / float(total_size)))
-    filled_length = int(length * downloaded // total_size)
-    bar = '#' * filled_length + '-' * (length - filled_length)
-    sys.stdout.write(f'\r{name} - [{bar}] {percent}%')
-    sys.stdout.flush()
-
 
 
 # Connect to aria2c daemon
@@ -29,7 +15,6 @@ def connect_aria2():
 def add_download(api, url,title):
     try:
         download_list = api.add(url)
-
         # Collect the gids
         gids = []
 
@@ -42,7 +27,7 @@ def add_download(api, url,title):
             print(f"Download added: {download.gid} with filename: {title}")
             gids.append(download)
 
-        return gids[0]
+        return gids
     except Exception as e:
         print(f"Failed to add download: {e}")
         return None
