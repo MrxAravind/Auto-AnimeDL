@@ -6,7 +6,7 @@ import asyncio
 from pyrogram import Client
 from config import *
 from database import connect_to_mongodb, insert_document
-from downloader import connect_aria2, add_download,print_progress_bar
+from downloader import connect_aria2, add_download,list_downloads
 from datetime import datetime
 
 
@@ -66,27 +66,6 @@ def generate_thumbnail(file_name, output_filename):
     except subprocess.CalledProcessError as e:
         print(f"Error generating thumbnail for {file_name}: {e}")
 
-async def monitor_download(api, download,start_time, title):
-    while True:
-        try:
-            while not download.is_complete:
-                download.update()
-                progress = download.progress
-                done = download.completed_length
-                total_size = download.total_length
-                speed = download.download_speed
-                eta = download.eta
-                elapsed_time_seconds = (datetime.now() - start_time).total_seconds()
-                print_progress_bar(title,done,total_size)
-            if download.is_complete:
-                print(f"{title}: Download Completed")
-                return
-            await asyncio.sleep(5)  # Check every 5 seconds
-            
-        except Exception as e:
-            print(f"Error monitoring download for {title}: {e}")
-            return None
-
 async def start_download():
     async with app:
         rss_url = "https://pornrips.to/feed/"
@@ -96,20 +75,20 @@ async def start_download():
         for title, file_size, duration, torrent_link, pixhost_link in results:
             print(f"Starting download: {title} from {torrent_link}")
             try:
-                download = add_download(api, torrent_link, title)
+                file_path = f"{title}.mp4"
+                download = add_download(api, torrent_link, file_path)
                 start_time = datetime.now()
                 if not download:
                     print(f"Failed to add download for {title}")
                     continue
                 while not download.is_complete:
                     download.update()
-                    await asyncio.sleep(5)
+                    list_downloads(api)
+                    
                     
                 # Get the file path from the completed download
-                file_path = download.files[0].path
-                if file_path:
-                    thumb_path = f"Downloads/{title}.png"
-                    generate_thumbnail(file_path, thumb_path)
+                thumb_path = f"Downloads/{title}.png"
+                generate_thumbnail(file_path, thumb_path)
 
                 video_message = await app.send_video(
                     DUMP_ID, video=file_path, thumb=thumb_path, caption=title
