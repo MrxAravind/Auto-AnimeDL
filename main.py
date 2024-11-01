@@ -83,7 +83,7 @@ async def start_download():
                     continue
                 while not download.is_complete:
                     download.update()
-                    list_downloads(api)
+                    list_downloads(api,start_time)
                     
                     
                 # Get the file path from the completed download
