@@ -1,122 +1,92 @@
-import aria2p
-from datetime import datetime
-from tabulate import tabulate
+import qbittorrent
 import os
+from tabulate import tabulate
 
-# Connect to aria2c daemon
-def connect_aria2():
-    return aria2p.API(
-        aria2p.Client(
-            host="http://localhost",  # Change this if your aria2c daemon is hosted elsewhere
-            port=6800,
-            secret=""  # If you have an RPC secret, add it here
-        )
-    )
+# Connect to qBittorrent daemon
+def connect_qbittorrent():
+    qb = qbittorrent.Client()
+    qb.login('your_username', 'your_password')  # Replace with your qBittorrent credentials
+    return qb
 
 # Add a download with a specified filename
-def add_download(api, url, filename):
+def add_download(qb, url, filename):
     try:
-        # Set the options for the download
-        options = {"out": filename}  # Specify the desired filename
-        download_list = api.add_magnet(url, options=options)
-
-        # Collect the gids
-        gids = []
-
-        if isinstance(download_list, list):
-            for download in download_list:
-                print(f"Download added: {download.gid} with filename: {filename}")
-                gids.append(download)
-        else:
-            download = download_list
-            print(f"Download added: {download.gid} with filename: {filename}")
-            gids.append(download)
-
-        return gids[0]
+        qb.download_from_link(url, savepath='', name=filename)
+        print(f"Download added with filename: {filename}")
     except Exception as e:
         print(f"Failed to add download: {e}")
-        return None
 
-# Pause a download by GID
-def pause_download(api, gid):
+# Pause a download by torrent hash
+def pause_download(qb, torrent_hash):
     try:
-        api.pause(gid)
-        print(f"Download paused: {gid}")
+        qb.pause(torrent_hash)
+        print(f"Download paused: {torrent_hash}")
     except Exception as e:
         print(f"Failed to pause download: {e}")
 
-# Resume a download by GID
-def resume_download(api, gid):
+# Resume a download by torrent hash
+def resume_download(qb, torrent_hash):
     try:
-        api.resume(gid)
-        print(f"Download resumed: {gid}")
+        qb.resume(torrent_hash)
+        print(f"Download resumed: {torrent_hash}")
     except Exception as e:
         print(f"Failed to resume download: {e}")
 
-# Remove a download by GID
-def remove_download(api, gid):
+# Remove a download by torrent hash
+def remove_download(qb, torrent_hash):
     try:
-        api.remove([gid], force=True)
-        print(f"Download removed: {gid}")
+        qb.delete(torrent_hash)
+        print(f"Download removed: {torrent_hash}")
     except Exception as e:
         print(f"Failed to remove download: {e}")
 
 # Get the status of all downloads
-def get_downloads_status(api):
+def get_downloads_status(qb):
     try:
-        downloads = api.get_downloads()
-        for download in downloads:
-            print(f"GID: {download.gid}, Status: {download.status}, Progress: {download.progress_string()}")
+        torrents = qb.torrents()
+        for torrent in torrents:
+            print(f"Hash: {torrent['hash']}, Status: {torrent['state']}, Progress: {torrent['progress'] * 100:.1f}%")
     except Exception as e:
         print(f"Failed to retrieve downloads status: {e}")
 
-# Purge completed/removed downloads
-def purge_downloads(api):
-    try:
-        api.purge()
-        print("Purged completed/removed downloads")
-    except Exception as e:
-        print(f"Failed to purge downloads: {e}")
+# Purge completed/removed downloads (not applicable in qBittorrent API, but can be managed via removal)
+def purge_downloads(qb):
+    print("Use remove_download() to manage completed/removed torrents.")
 
-def list_downloads(api, start_time):
+# List all downloads with detailed information
+def list_downloads(qb):
     try:
         # Clear the screen
         os.system('cls' if os.name == 'nt' else 'clear')
 
-        downloads = api.get_downloads()
-        if not downloads:
+        torrents = qb.torrents()
+        if not torrents:
             print("No downloads found")
             return
 
         download_info = []
-        for download in downloads:
-            # Calculate download speed in MB/s
-            speed_mb = download.download_speed / 1024 / 1024
-            
-            # Calculate size in MB
-            total_mb = download.total_length / 1024 / 1024
-            completed_mb = download.completed_length / 1024 / 1024
-
-            # Format timestamp
-            timestamp = start_time
-
+        for torrent in torrents:
             # Prepare row data
             row = [
-                download.gid[:8],  # Truncated GID for readability
-                download.name[:30] + '...' if len(download.name) > 30 else download.name,  # Truncated filename
-                download.status,
-                f"{download.progress:.1f}%",
-                f"{completed_mb:.1f}/{total_mb:.1f} MB",
-                f"{speed_mb:.2f} MB/s",
-                timestamp,
-                download.error_message[:30] if download.error_message else ''
+                torrent['hash'][:8],  # Truncated hash for readability
+                torrent['name'][:30] + '...' if len(torrent['name']) > 30 else torrent['name'],  # Truncated filename
+                torrent['state'],
+                f"{torrent['progress'] * 100:.1f}%",
+                f"{torrent['size'] / 1024 / 1024:.1f} MB",  # Size in MB
+                f"{torrent['download_speed'] / 1024 / 1024:.2f} MB/s",  # Speed in MB/s
+                torrent['added_on'],  # Added timestamp (may need formatting)
+                torrent['status']  # Any error message or status info
             ]
-            if total_mb != 0:
-                download_info.append(row)
+            download_info.append(row)
 
         # Print table using tabulate
-        headers = ["GID", "Name", "Status", "Progress", "Size", "Speed", "Start Time", "Error"]
+        headers = ["Hash", "Name", "Status", "Progress", "Size", "Speed", "Added On", "Error"]
         print(tabulate(download_info, headers=headers, tablefmt="grid"))
 
     except Exception as e:
         print(f"Failed to list downloads: {e}")
+
+# Example usage
+if __name__ == "__main__":
+    qb = connect_qbittorrent()
+    # Add your desired functionality here, e.g., adding a download, listing, etc.
