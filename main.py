@@ -9,8 +9,7 @@ from database import connect_to_mongodb, insert_document
 from downloader import connect_aria2, add_download,list_downloads
 from datetime import datetime
 import time
-
-
+from tor2mag import *
 
 # Initialize connections
 api = connect_aria2()
@@ -74,10 +73,11 @@ async def start_download():
         print(f"Total links found: {len(results)}")
 
         for title, file_size, duration, torrent_link, pixhost_link in results:
-            print(f"Starting download: {title} from {torrent_link}")
+            magnet_link = convert_torrent_url_to_magnet(torrent_link)
+            print(f"Starting download: {title} from {magnet_link}") 
             try:
                 file_path = f"{title}.mp4"
-                download = add_download(api, torrent_link, file_path)
+                download = add_download(api, magnet_link, file_path)
                 start_time = datetime.now()
                 if not download:
                     print(f"Failed to add download for {title}")
