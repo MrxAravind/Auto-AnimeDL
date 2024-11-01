@@ -11,10 +11,8 @@ def connect_aria2():
     )
 
 # Add a download with a specified filename
-def add_download(api, url, filename):
+def add_download(api, url):
     try:
-        # Set the options for the download
-        options = {"out": filename}  # Specify the desired filename
         download_list = api.add(url, options=options)
 
         # Collect the gids
