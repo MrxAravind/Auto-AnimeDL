@@ -8,4 +8,5 @@ bs4
 vcsi
 telegraph
 aria2p
+tabulate
 aria2
