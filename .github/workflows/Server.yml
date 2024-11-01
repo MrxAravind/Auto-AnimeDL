@@ -1,4 +1,4 @@
-name: Frosty-Hanime-Server
+name: Prips-Server
 on:
   workflow_dispatch:
   schedule:
