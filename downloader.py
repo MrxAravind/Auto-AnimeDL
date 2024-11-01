@@ -1,5 +1,6 @@
 import aria2p
-
+from datetime import datetime
+from tabulate import tabulate
 
 # Connect to aria2c daemon
 def connect_aria2():
@@ -12,26 +13,28 @@ def connect_aria2():
     )
 
 # Add a download with a specified filename
-def add_download(api, url,title):
+def add_download(api, url, filename):
     try:
-        download_list = api.add(url)
+        # Set the options for the download
+        options = {"out": filename}  # Specify the desired filename
+        download_list = api.add(url, options=options)
+
         # Collect the gids
         gids = []
 
         if isinstance(download_list, list):
             for download in download_list:
-                print(f"Download added: {download.gid} with filename: {title}")
+                print(f"Download added: {download.gid} with filename: {filename}")
                 gids.append(download)
         else:
             download = download_list
-            print(f"Download added: {download.gid} with filename: {title}")
+            print(f"Download added: {download.gid} with filename: {filename}")
             gids.append(download)
 
-        return gids
+        return gids[0]
     except Exception as e:
         print(f"Failed to add download: {e}")
         return None
-
 
 # Pause a download by GID
 def pause_download(api, gid):
@@ -73,3 +76,43 @@ def purge_downloads(api):
         print("Purged completed/removed downloads")
     except Exception as e:
         print(f"Failed to purge downloads: {e}")
+
+# List all downloads with detailed information
+def list_downloads(api):
+    try:
+        downloads = api.get_downloads()
+        if not downloads:
+            print("No downloads found")
+            return
+
+        download_info = []
+        for download in downloads:
+            # Calculate download speed in MB/s
+            speed_mb = download.download_speed / 1024 / 1024
+            
+            # Calculate size in MB
+            total_mb = download.total_length / 1024 / 1024
+            completed_mb = download.completed_length / 1024 / 1024
+
+            # Format timestamp
+            timestamp = datetime.fromtimestamp(download.start_time).strftime('%Y-%m-%d %H:%M:%S')
+
+            # Prepare row data
+            row = [
+                download.gid[:8],  # Truncated GID for readability
+                download.name[:30] + '...' if len(download.name) > 30 else download.name,  # Truncated filename
+                download.status,
+                f"{download.progress:.1f}%",
+                f"{completed_mb:.1f}/{total_mb:.1f} MB",
+                f"{speed_mb:.2f} MB/s",
+                timestamp,
+                download.error_message[:30] if download.error_message else ''
+            ]
+            download_info.append(row)
+
+        # Print table using tabulate
+        headers = ["GID", "Name", "Status", "Progress", "Size", "Speed", "Start Time", "Error"]
+        print(tabulate(download_info, headers=headers, tablefmt="grid"))
+
+    except Exception as e:
+        print(f"Failed to list downloads: {e}")
