@@ -7,6 +7,6 @@ TgCrypto
 bs4
 vcsi
 telegraph
-qbittorrent-api
+aria2p
 tabulate
 bencodepy
