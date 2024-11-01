@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import feedparser
+import asyncio
 from pyrogram import Client
 from config import *
 from database import connect_to_mongodb, insert_document
@@ -62,6 +63,31 @@ def generate_thumbnail(file_name, output_filename):
     except subprocess.CalledProcessError as e:
         print(f"Error generating thumbnail for {file_name}: {e}")
 
+async def monitor_download(api, gid, title):
+    while True:
+        try:
+            status = api.tellStatus(gid)  # Correct method name is tellStatus
+            if status['status'] == 'complete':
+                print(f"{title}: Download Completed")
+                return status
+            elif status['status'] == 'error':
+                print(f"{title}: Download Error - {status.get('errorMessage', 'Unknown error')}")
+                return None
+            
+            # Calculate progress
+            if 'totalLength' in status and int(status['totalLength']) > 0:
+                downloaded = int(status['completedLength'])
+                total = int(status['totalLength'])
+                progress = (downloaded / total) * 100
+                speed = int(status.get('downloadSpeed', 0))
+                print(f"{title}: Progress: {progress:.2f}% - Speed: {speed/1024/1024:.2f} MB/s")
+            
+            await asyncio.sleep(5)  # Check every 5 seconds
+            
+        except Exception as e:
+            print(f"Error monitoring download for {title}: {e}")
+            return None
+
 async def start_download():
     async with app:
         rss_url = "https://pornrips.to/feed/"
@@ -72,26 +98,22 @@ async def start_download():
             print(f"Starting download: {title} from {torrent_link}")
             try:
                 download = add_download(api, torrent_link, title)
-                gid = download.gid  # Get the download ID
-
-                # Wait for the download to complete
-                while True:
-                    download_info = api.tell_status(gid)
-                    if download_info['status'] == 'completed':
-                        print(f"{title}: Download Completed")
-                        break
-
-                    # Display progress
-                    if 'totalLength' in download_info and download_info['totalLength'] > 0:
-                        downloaded = download_info['completedLength']
-                        total = download_info['totalLength']
-                        progress = (downloaded / total) * 100
-                        print(f"{title}: Download Progress: {progress:.2f}%")
-
-                    await asyncio.sleep(1)  # Wait for a second before checking again
-
-                # Fetch details about the completed download
-                file_path = download_info['files'][0]['path']  # Get the file path
+                if not download:
+                    print(f"Failed to add download for {title}")
+                    continue
+                
+                # Monitor download progress
+                status = await monitor_download(api, download.gid, title)
+                if not status:
+                    continue
+                
+                # Get the file path from the completed download
+                files = api.getFiles(download.gid)  # Correct method name is getFiles
+                if not files or not files[0]['path']:
+                    print(f"No file path found for {title}")
+                    continue
+                
+                file_path = files[0]['path']
                 thumb_path = f"Downloads/{title}.png"
                 
                 # Generate thumbnail
@@ -114,7 +136,6 @@ async def start_download():
 
             except Exception as e:
                 print(f"Error during download process for {title}: {e}")
-
 
 if __name__ == "__main__":
     app.run(start_download())
