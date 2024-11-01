@@ -74,10 +74,10 @@ async def start_download():
 
         for title, file_size, duration, torrent_link, pixhost_link in results:
             magnet_link = convert_torrent_url_to_magnet(torrent_link)
-            print(f"Starting download: {title} from {torrent_link}") 
+            print(f"Starting download: {title} from {magnet_link}") 
             try:
                 file_path = f"{title}.mp4"
-                download = add_download(api, torrent_link, file_path)
+                download = add_download(api, magnet_link, file_path)
                 start_time = datetime.now()
                 if not download:
                     print(f"Failed to add download for {title}")
