@@ -8,9 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Downloading Files 
-        run: |
-           wget -qq ${{secrets.CONF}} 
       - name: Running the Script
         run: |
            sudo bash start.sh
