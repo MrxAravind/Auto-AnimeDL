@@ -13,8 +13,13 @@ import random
 import string
 from torrentp import TorrentDownloader
 
+
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Suppress Pyrogram logging
+logging.getLogger("pyrogram").setLevel(logging.WARNING)  # Change this to ERROR or CRITICAL if you want less output
+
 
 # Initialize connections
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
