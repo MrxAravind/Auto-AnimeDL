@@ -13,7 +13,6 @@ import random
 import string
 from torrentp import TorrentDownloader
 
-
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -30,17 +29,13 @@ app = Client(
     workers=300
 )
 
-
-
-async def download_torrent(magnet_link,file_path):
+async def download_torrent(magnet_link, file_path):
     torrent_file = TorrentDownloader(magnet_link, file_path)
     await torrent_file.start_download()
 
-
 def generate_random_string(length):
     characters = string.ascii_letters + string.digits + string.punctuation
-    random_string = ''.join(random.choice(characters) for _ in range(length))
-    return random_string
+    return ''.join(random.choice(characters) for _ in range(length))
 
 def convert_pixhost_link(original_url):
     parts = original_url.split('/')
@@ -49,6 +44,20 @@ def convert_pixhost_link(original_url):
         image_id = parts[5].split('_')[0]
         return f"https://t0.pixhost.to/thumbs/{number}/{image_id}_cover.jpg"
     return "Invalid Pixhost link"
+
+def check_for_video_files(download_path):
+    video_files = []
+    for root, _, files in os.walk(download_path):
+        for f in files:
+            if f.endswith(('.mp4', '.mkv')):
+                video_files.append(os.path.join(root, f))
+
+    if not video_files:
+        logging.warning(f"No video files found in {download_path}.")
+        return video_files  # Return an empty list
+    else:
+        logging.info(f"Found video files: {video_files}")
+        return video_files  # Return list of found files
 
 def fetch_rss_links(rss_url):
     feed = feedparser.parse(rss_url)
@@ -101,16 +110,16 @@ async def start_download():
                 gid = generate_random_string(10)
                 download_path = f"Downloads/{gid}"
                 os.makedirs(download_path, exist_ok=True)
-                
+
                 await download_torrent(magnet_link, download_path)
 
-                video_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.mkv'))]
+                video_files = check_for_video_files(download_path)
                 if not video_files:
                     logging.warning(f"No video files found in {download_path}.")
                     continue
-
-                file_path = os.path.join(download_path, video_files[0])
-                thumb_path = f"{download_path}/{title}.png"
+                
+                file_path = video_files[0]
+                thumb_path = os.path.join(download_path, f"{title}.png")
                 generate_thumbnail(file_path, thumb_path)
 
                 video_message = await app.send_video(
@@ -123,6 +132,7 @@ async def start_download():
                 }
                 insert_document(db, collection_name, result)
 
+                # Cleanup
                 os.remove(file_path)
                 os.remove(thumb_path)
                 os.rmdir(download_path)
