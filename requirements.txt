@@ -7,5 +7,6 @@ TgCrypto
 bs4
 vcsi
 telegraph
-aria2p
-aria2
+tabulate
+bencodepy
+torrentp
