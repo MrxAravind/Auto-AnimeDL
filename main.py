@@ -11,6 +11,8 @@ from datetime import datetime
 from tor2mag import *
 import random
 import string
+from torrentp import TorrentDownloader
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,13 +30,12 @@ app = Client(
     workers=300
 )
 
-def download_with_aria2(link, path):
-    try:
-        command = ['aria2c', link, '-x', '10', '-j', '10', '--seed-time=0', '-d', path]
-        subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logging.info("Download completed successfully.")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error occurred during download: {e}")
+
+
+async def download_torrent(magnet_link,file_path):
+    torrent_file = TorrentDownloader(magnet_link, file_path)
+    await torrent_file.start_download()
+
 
 def generate_random_string(length):
     characters = string.ascii_letters + string.digits + string.punctuation
@@ -101,7 +102,7 @@ async def start_download():
                 download_path = f"Downloads/{gid}"
                 os.makedirs(download_path, exist_ok=True)
                 
-                download_with_aria2(magnet_link, download_path)
+                download_torrent(magnet_link, download_path)
 
                 video_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.mkv'))]
                 if not video_files:
