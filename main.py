@@ -102,7 +102,7 @@ async def start_download():
                 download_path = f"Downloads/{gid}"
                 os.makedirs(download_path, exist_ok=True)
                 
-                download_torrent(magnet_link, download_path)
+                await download_torrent(magnet_link, download_path)
 
                 video_files = [f for f in os.listdir(download_path) if f.endswith(('.mp4', '.mkv'))]
                 if not video_files:
