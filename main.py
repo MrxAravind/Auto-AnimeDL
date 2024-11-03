@@ -30,7 +30,7 @@ app = Client(
 )
 
 async def download_torrent(magnet_link, file_path):
-    torrent_file = TorrentDownloader(magnet_link, file_path,upload_speed=1)
+    torrent_file = TorrentDownloader(magnet_link, file_path)
     await torrent_file.start_download()
 
 def generate_random_string(length):
