@@ -2,7 +2,7 @@ name: Prips-Server
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '0 */1 * * *'
+    - cron:  '0 */24 * * *'
 jobs:
   run-sync-service:
     runs-on: ubuntu-latest
