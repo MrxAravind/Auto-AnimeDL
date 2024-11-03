@@ -9,3 +9,4 @@ vcsi
 telegraph
 tabulate
 bencodepy
+torrentp
