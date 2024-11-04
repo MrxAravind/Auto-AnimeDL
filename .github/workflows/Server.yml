@@ -1,4 +1,4 @@
-name: Prips-Server
+name: Auto-Anime
 on:
   workflow_dispatch:
   schedule:
