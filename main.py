@@ -84,7 +84,7 @@ def fetch_rss_links(rss_url):
 
 def generate_thumbnail(file_name, output_filename):
     command = [
-        'vcsi', file_name, '-t', '-g', '2x2',
+        'vcsi', file_name, '-t', '-g', '1x1',
         '--metadata-position', 'hidden',
         '--start-delay-percent', '35', '-o', output_filename
     ]
@@ -118,8 +118,8 @@ async def start_download():
                 thumb_path = os.path.join(download_path, f"{title}.png")
                 generate_thumbnail(file_path, thumb_path)
 
-                video_message = await app.send_video(
-                    DUMP_ID, video=file_path, thumb=thumb_path, caption=title
+                video_message = await app.send_document(
+                    DUMP_ID, document=file_path, thumb=thumb_path, caption=title
                 )
                 result = {
                     "ID": video_message.id,
