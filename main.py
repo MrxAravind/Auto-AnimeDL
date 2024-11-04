@@ -23,7 +23,7 @@ logging.getLogger("pyrogram").setLevel(logging.WARNING)  # Change this to ERROR 
 
 # Initialize connections
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
-collection_name = "Auto-Anime"
+collection_name = "AutoAnime"
 
 # Pyrogram client initialization
 app = Client(
