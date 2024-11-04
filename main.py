@@ -105,7 +105,7 @@ def generate_thumbnail(file_name, output_filename):
 async def start_download():
     async with app:
         rss_url = "https://pornrips.to/feed/"
-        results = fetch_rss_links(rss_url)
+        results = fetch_rss_links(rss_url)[:40]
         logging.info(f"Total links found: {len(results)}")
 
         for title, file_size, duration, torrent_link, pixhost_link in results:
