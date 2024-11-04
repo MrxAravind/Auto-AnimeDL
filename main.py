@@ -23,11 +23,11 @@ logging.getLogger("pyrogram").setLevel(logging.WARNING)  # Change this to ERROR 
 
 # Initialize connections
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
-collection_name = "Prips"
+collection_name = "Auto-Anime"
 
 # Pyrogram client initialization
 app = Client(
-    name="PRips-bot",
+    name="Anime-bot",
     api_hash=API_HASH,
     api_id=int(API_ID),
     bot_token=BOT_TOKEN,
@@ -73,18 +73,10 @@ def fetch_rss_links(rss_url):
     entries_info = []
     for entry in feed.entries:
         title = entry.title
-        content = entry.content[0].value
-
         try:
-            release = re.search(r'<strong>Release:</strong>\s*(.*?)<br', content).group(1).strip()
-            file_size = re.search(r'<strong>File Size:</strong>\s*(.*?)<br', content).group(1).strip()
-            duration = re.search(r'<strong>Duration:</strong>\s*(.*?)</p>', content).group(1).strip()
-            torrent_link = re.search(r'href="(https://[^"]*\.torrent)"', content).group(1)
+            magnet_link = entry.link
 
-            pixhost_link_match = re.search(r'(https://pixhost\.to/show/\d+/\d+_cover\.jpg)', content)
-            pixhost_link = convert_pixhost_link(pixhost_link_match.group(1)) if pixhost_link_match else "No Pixhost link found"
-
-            entries_info.append((title, file_size, duration, torrent_link, pixhost_link))
+            entries_info.append((title,magnet_link))
         except AttributeError as e:
             logging.warning(f"Missing information in feed entry: {title}. Error: {e}")
 
@@ -104,12 +96,11 @@ def generate_thumbnail(file_name, output_filename):
 
 async def start_download():
     async with app:
-        rss_url = "https://pornrips.to/feed/"
+        rss_url = "https://subsplease.org/rss"
         results = fetch_rss_links(rss_url)[:40]
         logging.info(f"Total links found: {len(results)}")
 
-        for title, file_size, duration, torrent_link, pixhost_link in results:
-            magnet_link = convert_torrent_url_to_magnet(torrent_link)
+        for title,magnet_link in results:
             logging.info(f"Starting download: {title} from {magnet_link}")
             try:
                 gid = generate_random_string(10)
