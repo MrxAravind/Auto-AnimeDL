@@ -12,6 +12,9 @@ from tor2mag import *
 import random
 import string
 from torrentp import TorrentDownloader
+import os
+import re
+
 
 
 
@@ -50,6 +53,17 @@ def convert_pixhost_link(original_url):
         return f"https://t0.pixhost.to/thumbs/{number}/{image_id}_cover.jpg"
     return "Invalid Pixhost link"
 
+
+def rename_files_in_directory(filename):
+    pattern = r"\[.*?\]"
+    if "[SubsPlease]" in filename:
+            new_name = re.sub(pattern, "", filename).strip()     
+            old_file_path = filename
+            new_file_path = os.path.join(directory, new_name)
+            os.rename(old_file_path, new_file_path)
+            print(f"Renamed: {filename} -> {new_name}")
+
+    
 def check_for_video_files(download_path):
     video_files = []
     for root, _, files in os.walk(download_path):
@@ -113,7 +127,7 @@ async def start_download():
                 if not video_files:
                     logging.warning(f"No video files found in {download_path}.")
                     continue
-                
+                rename_files_in_directory(directory_path,title)
                 file_path = video_files[0]
                 thumb_path = os.path.join(download_path, f"{title}.png")
                 generate_thumbnail(file_path, thumb_path)
