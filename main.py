@@ -54,14 +54,16 @@ def convert_pixhost_link(original_url):
     return "Invalid Pixhost link"
 
 
-def rename_files_in_directory(filename):
+def rename_files(filename):
     pattern = r"\[.*?\]"
     if "[SubsPlease]" in filename:
             new_name = re.sub(pattern, "", filename).strip()     
+            title = os.path.basename(new_name)
             old_file_path = filename
-            new_file_path = os.path.join(directory, new_name)
+            new_file_path = new_name
             os.rename(old_file_path, new_file_path)
             print(f"Renamed: {filename} -> {new_name}")
+            return title,new_file_path
 
     
 def check_for_video_files(download_path):
@@ -127,13 +129,13 @@ async def start_download():
                 if not video_files:
                     logging.warning(f"No video files found in {download_path}.")
                     continue
-                rename_files_in_directory(directory_path,title)
                 file_path = video_files[0]
+                title,new_file_path = rename_files(file_path)
                 thumb_path = os.path.join(download_path, f"{title}.png")
-                generate_thumbnail(file_path, thumb_path)
+                generate_thumbnail(new_file_path, thumb_path)
 
                 video_message = await app.send_document(
-                    DUMP_ID, document=file_path, thumb=thumb_path, caption=title
+                    DUMP_ID, document=new_file_path, thumb=thumb_path, caption=title
                 )
                 result = {
                     "ID": video_message.id,
@@ -143,7 +145,7 @@ async def start_download():
                 insert_document(db, collection_name, result)
 
                 # Cleanup
-                os.remove(file_path)
+                os.remove(new_file_path)
                 os.remove(thumb_path)
                 os.rmdir(download_path)
 
