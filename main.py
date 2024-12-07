@@ -148,7 +148,7 @@ async def start_download():
                 gid = generate_random_string(10)
                 download_path = f"Downloads/{gid}"
                 os.makedirs(download_path, exist_ok=True)
-                name,direct_link = seedr(title,torrent)
+                name,direct_link = seedr(title,magnet_link)
                 add_dl(name,direct_link)
                 video_files = check_for_video_files(download_path)
                 if not video_files:
