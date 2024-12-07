@@ -11,7 +11,7 @@ from datetime import datetime
 import random
 import string
 from seedrcc import Login,Seedr
-
+from download import *
 
 
 
@@ -31,6 +31,9 @@ response = seedr.authorize()
 account = Seedr(token=seedr.token)
 
 
+downloader = Aria2cDownloader(max_concurrent_downloads=5)
+
+
 # Pyrogram client initialization
 app = Client(
     name="Anime-bot",
@@ -41,6 +44,14 @@ app = Client(
 )
 
 
+def add_dl(file_name,url):
+    downloader.download_file(url,filename=file_name,
+       download_options={
+        'max-download-limit': '500K',
+        'checksum': 'sha-256=abc123...'
+         })
+    downloader.start_downloads()
+    return downloader.get_download_results()
 
 def generate_random_string(length):
     characters = string.ascii_letters + string.digits + string.punctuation
@@ -137,7 +148,8 @@ async def start_download():
                 gid = generate_random_string(10)
                 download_path = f"Downloads/{gid}"
                 os.makedirs(download_path, exist_ok=True)
-                title,direct_link = seedr(title,torrent)
+                name,direct_link = seedr(title,torrent)
+                add_dl(name,direct_link)
                 video_files = check_for_video_files(download_path)
                 if not video_files:
                     logging.warning(f"No video files found in {download_path}.")
@@ -148,7 +160,7 @@ async def start_download():
                 generate_thumbnail(new_file_path, thumb_path)
 
                 video_message = await app.send_document(
-                    DUMP_ID, document=new_file_path, thumb=thumb_path, caption=title
+                    DUMP_ID, document=new_file_path, thumb=thumb_path, caption=name
                 )
                 result = {
                     "ID": video_message.id,
