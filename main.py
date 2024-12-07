@@ -172,8 +172,8 @@ async def start_download():
                 os.remove(new_file_path)
                 os.remove(thumb_path)
                 os.rmdir(download_path)
-            except:
-                logging.error(f"Error during download process for {title}")
+            except Exception as e:
+                logging.error(f"Error during download process for {title} : {e}")
 
 if __name__ == "__main__":
     app.run(start_download())
