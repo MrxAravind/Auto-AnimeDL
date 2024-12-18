@@ -10,7 +10,7 @@ from typing import List, Dict, Optional, Callable
 class Aria2cDownloader:
     def __init__(self, 
                  max_concurrent_downloads: int = 5, 
-                 download_dir: str = './Downloads', 
+                 download_dir: str = './downloads', 
                  aria2c_path: str = 'aria2c'):
         """
         Initialize the Aria2c Downloader

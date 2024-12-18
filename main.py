@@ -27,71 +27,77 @@ downloader = Aria2cDownloader(max_concurrent_downloads=5)
 
 
 # Pyrogram client initialization
-"""app = Client(
+app = Client(
     name="Anime-bot",
     api_hash=API_HASH,
     api_id=int(API_ID),
     bot_token=BOT_TOKEN,
     workers=300
-)"""
+)
 
 
 def add_dl(file_name,url):
-    downloader.download_file(url,filename=file_name,)
-    downloader.start_downloads()
+    res = downloader.download_file(url,filename=file_name,)
+    res = downloader.start_downloads()
     return downloader.get_download_results()
 
 
 async def start_download():
+    async with app:
         try: 
-                rss_url = "https://subsplease.org/rss"
+                rss_url = "https://subsplease.org/rss/"
                 results = fetch_rss_links(rss_url)
+                download_path = f"downloads"
                 logging.info(f"Total links found: {len(results)}")
-                for title,magnet_link in results[3:]:
+                clean_downloads()
+                
+                   
+                for title,magnet_link in results[8:]:
+                        delete_files()
                         logging.info(f"Starting download: {magnet_link}")            
-                        download_path = f"Downloads"
+                        
                         os.makedirs(download_path, exist_ok=True)
                         
                         response = add_mag(title,magnet_link)
-                        print(response)
                         time.sleep(10)
 
-                        files = list_files()
-                        print(files)
-                        exit()
+                        data = list_files()
+                        for folderId,fileId,name in data:
+                            if name == title and response["title"] == name and title ==  response["title"]:
+                               f,link = gen_link(fileId)
 
-                        
-                        add_dl(name,direct_link)
-
-
+                        res = add_dl(name,link)
 
 
                         video_files = check_for_video_files(download_path)
                         if not video_files:
                             logging.warning(f"No video files found in {download_path}.")
                             continue
+
                         file_path = video_files[0]
-                        title,new_file_path = rename_files(file_path)
+        
+                        if "[SubsPlease]" in file_path:
+                            title = re.sub(r"\[.*?\]", "", title).strip() 
+                        
                         thumb_path = os.path.join(download_path, f"{title}.png")
-                        generate_thumbnail(new_file_path, thumb_path)
+                        generate_thumbnail(file_path, thumb_path)
+                        t,file_path =  rename_files(file_path)
 
                         video_message = await app.send_document(
-                            DUMP_ID, document=new_file_path, thumb=thumb_path, caption=name
+                            DUMP_ID, document=file_path, thumb=thumb_path, caption=title
                         )
                         result = {
                             "ID": video_message.id,
                             "File_Name": title,
-                            "Video_Link": torrent_link,
+                            "Video_Link":magnet_link,
                         }
                         insert_document(db, collection_name, result)
-                        account.deleteFile(fileId=file_id)
-                        if False:
-                            account.deleteFolder(folderId)
-                        os.remove(new_file_path)
-                        os.remove(thumb_path)
-                        os.rmdir(download_path)
+                        clean_downloads()
+
+                        
+        
         except Exception as e:
-                logging.error(f"Error during download process for {title} : {e}")
+                logging.error(f"Error during download process for : {e}")
 
 if __name__ == "__main__":
-     asyncio.run(start_download())
+     app.run(start_download())

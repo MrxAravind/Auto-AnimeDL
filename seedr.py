@@ -47,7 +47,7 @@ def list_files():
                 if title.endswith((".mkv", ".mp4")):
                     data.append([folder_id, file_id, title])
                     logging.info(f"Found file: {title}")
-        print(data)
+        return data
     except:
         logging.error("Error generating Seedr File Search")
 

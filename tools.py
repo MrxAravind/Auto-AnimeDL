@@ -5,6 +5,7 @@ import os
 import re
 import string
 import random
+import shutil
 
 
 
@@ -67,6 +68,17 @@ def rename_files(filename):
             os.rename(old_file_path, new_file_path)
             print(f"Renamed: {filename} -> {new_name}")
             return title,new_file_path
+
+
+def clean_downloads():
+    download_path = 'downloads'
+    for filename in os.listdir(download_path):
+                file_path = os.path.join(download_path, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+    os.rmdir(download_path)
 
 
 
