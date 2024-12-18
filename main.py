@@ -25,9 +25,10 @@ logging.getLogger("pyrogram").setLevel(logging.WARNING)  # Change this to ERROR 
 db = connect_to_mongodb(MONGODB_URI, "Spidydb")
 collection_name = "AutoAnime"
 
-seedr = Login('mrhoster07@gmail.com', 'hatelenovo@33')
+seedr = Login('mrhoster07@gmail.com', 'hatelenovo@22')
 
 response = seedr.authorize()
+
 account = Seedr(token=seedr.token)
 
 
@@ -113,13 +114,17 @@ def fetch_rss_links(rss_url):
 
 def seedr(title,torrent):
   try:
-     account.addTorrent('magnet:?xt=urn:btih:LQUJ4PBRIP4TXPZJOILHGL3EJR77DYBG&dn=%5BSubsPlease%5D%20Dandadan%20-%2010%20%281080p%29%20%5BDE4B4411%5D.mkv&xl=1446930174&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2710%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.internetwarriors.net%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.cyberia.is%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker3.itzmx.com%3A6961%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fretracker.lanta-net.ru%3A2710%2Fannounce&tr=http%3A%2F%2Fopen.acgnxtracker.com%3A80%2Fannounce&tr=wss%3A%2F%2Ftracker.openwebtorrent.com')
+     account.addTorrent(torrent)
+     time.sleep(10)
      response = account.listContents()
      folder_id = response["folders"][0]["id"]
      response = account.listContents(folder_id)
      file_id = response["files"][0]['folder_file_id']
      response = account.fetchFile(file_id)
-     return response["name"],response["url"]
+     if response:
+        time.sleep(10)
+        logging.info(response["url"])
+     return response["name"],response["url"],folder_id ,file_id
   except:
       logging.error(f"Error generating Seedr Link for {title}")
 
@@ -142,13 +147,12 @@ async def start_download():
         results = fetch_rss_links(rss_url)
         logging.info(f"Total links found: {len(results)}")
 
-        for title,magnet_link in results:
-            logging.info(f"Starting download: {title} from {magnet_link}")
+        for title,magnet_link in results[:2]:
+            logging.info(f"Starting download: {title}")
             try:
-                gid = generate_random_string(10)
-                download_path = f"Downloads/{gid}"
+                download_path = f"Downloads"
                 os.makedirs(download_path, exist_ok=True)
-                name,direct_link = seedr(title,magnet_link)
+                name,direct_link,folder_id,file_id = seedr(title,magnet_link)
                 add_dl(name,direct_link)
                 video_files = check_for_video_files(download_path)
                 if not video_files:
@@ -168,7 +172,9 @@ async def start_download():
                     "Video_Link": torrent_link,
                 }
                 insert_document(db, collection_name, result)
-
+                account.deleteFile(fileId=file_id)
+                if False:
+                    account.deleteFolder(folderId)
                 os.remove(new_file_path)
                 os.remove(thumb_path)
                 os.rmdir(download_path)
